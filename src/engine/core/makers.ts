@@ -2,6 +2,7 @@ import {
   AttackConfig,
   AttackEnergyRequirements,
   AttackId,
+  AttackResult,
   CardClass,
   CardGameId,
   CardStableId,
@@ -16,7 +17,7 @@ import {
   PokemonType,
   SpeciesId,
 } from "./types";
-import { InvalidGameStateError } from "./errors";
+import { getOpponentActivePokemon } from "./utils";
 
 export function makeSimpleDamagingMove(d: {
   id: string;
@@ -32,23 +33,16 @@ export function makeSimpleDamagingMove(d: {
     description: d.description ?? null,
     energyRequirements: d.energyRequirements,
     damageDescriptor: damage.toString(),
-    onUse: (game: InternalGameState) => {
-      const opponent = game.activePlayer === Player.A ? Player.B : Player.A;
-      const oppActivePokemonState = game.active[opponent];
-      if (oppActivePokemonState == null) {
-        throw new InvalidGameStateError("Opponent has no active Pokemon.");
-      }
+    onUse: (game: InternalGameState): AttackResult => {
+      const opponentActivePokemon = getOpponentActivePokemon(game);
 
       return {
-        ...game,
-        active: {
-          ...game.active,
-          [opponent]: {
-            ...oppActivePokemonState,
-            currentHealthPoints:
-              oppActivePokemonState.currentHealthPoints - damage,
+        damages: [
+          {
+            targetCardId: opponentActivePokemon.cardId,
+            damage,
           },
-        },
+        ],
       };
     },
     onPreview: () => {
@@ -97,6 +91,7 @@ export function makeEmptyGameState(): InternalGameState {
       canUseSupporterCard: true,
       canRetreat: true,
     },
+    pokemonStates: [],
     prizePoints: {
       [Player.A]: 0,
       [Player.B]: 0,
@@ -125,10 +120,12 @@ export function makeEmptyGameState(): InternalGameState {
 }
 
 export function makeInitialPokemonState(p: {
+  player: Player;
   pokemonCardConfig: PokemonCardConfig;
   cardId: string;
 }): PokemonState {
   return {
+    player: p.player,
     cardReference: {
       cardId: p.cardId as CardGameId,
       cardStableId: p.pokemonCardConfig.stableId,

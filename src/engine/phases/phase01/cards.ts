@@ -24,3 +24,23 @@ export const bulbasaur = makeBasicPokemonCard({
   typeWeaknesses: [PokemonType.FIRE],
   retreatCost: 1,
 });
+
+export const bite = makeSimpleDamagingMove({
+  id: "bite",
+  name: "Bite",
+  damage: 20,
+  energyRequirements: {
+    [EnergyRequirementType.ANY]: 2,
+  },
+});
+
+export const growlithe = makeBasicPokemonCard({
+  stableId: "a1-039",
+  name: "Growlithe",
+  speciesId: "growlithe",
+  type: PokemonType.FIRE,
+  baseHealthPoints: 70,
+  attacks: [bite.id],
+  typeWeaknesses: [PokemonType.WATER],
+  retreatCost: 1,
+});

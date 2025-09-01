@@ -7,9 +7,12 @@ import {
 } from "./types";
 import { makeEmptyGameState } from "./makers";
 import {
+  applyAttackResult,
   applyKnockoutsAndWinConditions,
   getOwnActivePokemon,
+  getPokemonStateByCardId,
   hasMetEnergyRequirements,
+  transformAttackResult,
 } from "./utils";
 import { AttackNotFoundError, EnergyRequirementNotMetError } from "./errors";
 import { getEnergyRequirementsNotMetMessage } from "./stringify";
@@ -50,37 +53,39 @@ export class GameEngine {
     const game = this.getGameState();
     const ownActive = getOwnActivePokemon(game);
     const activeCardConfig = this.registry.getPokemonCardByStableId(
-      ownActive.cardReference.cardStableId
+      ownActive.cardStableId
     );
     if (!activeCardConfig.attacks.includes(attackId)) {
       throw new AttackNotFoundError(
-        `Attack [${attackId}] not found on Pokemon card [${ownActive.cardReference.cardStableId}].`
+        `Attack [${attackId}] not found on Pokemon card [${ownActive.cardStableId}].`
       );
     }
 
     const attack = this.registry.getAttackById(attackId);
+    const ownState = getPokemonStateByCardId(game, ownActive.cardId);
     if (
       !hasMetEnergyRequirements(
         attack.energyRequirements,
-        ownActive.attachedEnergy
+        ownState.attachedEnergy
       )
     ) {
       throw new EnergyRequirementNotMetError(
         getEnergyRequirementsNotMetMessage(
           attackId,
           attack.energyRequirements,
-          ownActive.attachedEnergy
+          ownState.attachedEnergy
         )
       );
     }
 
-    const initialAttackGame = attack.onUse(game, params);
-    // TODO: Apply weaknesses.
-    // TODO: Apply abilities that affect attacks.
-    // TODO: Apply effects that affect attacks.
-
+    const result = attack.onUse(game, params);
+    const engineResult = transformAttackResult(game, this.registry, {
+      ...result,
+      attackingType: activeCardConfig.type,
+    });
+    const afterAttackGame = applyAttackResult(game, engineResult);
     const nextGame = applyKnockoutsAndWinConditions(
-      initialAttackGame,
+      afterAttackGame,
       this.registry
     );
     this.setGameState(nextGame);

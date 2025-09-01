@@ -1,5 +1,6 @@
 import {
   AttackEnergyRequirements,
+  CardGameId,
   EnergyRequirementType,
   GameResult,
   InternalGameState,
@@ -7,28 +8,48 @@ import {
   PokemonCardConfig,
   PokemonState,
   PrizePoints,
+  PokemonSlot,
+  EngineAttackResult,
+  PokemonType,
 } from "./types";
-import { InvalidGameStateError } from "./errors";
+import {
+  CardInstanceNotFoundError,
+  InvalidAttackResultError,
+  InvalidGameStateError,
+} from "./errors";
 import { Registry } from "./registry";
 
-export function getOwnActivePokemon(game: InternalGameState): PokemonState {
+export function getOwnActivePokemon(game: InternalGameState): PokemonSlot {
   const own = game.activePlayer === Player.A ? Player.A : Player.B;
-  const ownActivePokemonState = game.active[own];
-  if (ownActivePokemonState == null) {
+  const ownActivePokemon = game.active[own];
+  if (ownActivePokemon == null) {
     throw new InvalidGameStateError("Player has no active Pokemon.");
   }
-  return ownActivePokemonState;
+  return ownActivePokemon;
 }
 
-export function getOpponentActivePokemon(
-  game: InternalGameState
-): PokemonState {
+export function getOpponentActivePokemon(game: InternalGameState): PokemonSlot {
   const opponent = game.activePlayer === Player.A ? Player.B : Player.A;
-  const oppActivePokemonState = game.active[opponent];
-  if (oppActivePokemonState == null) {
+  const oppActivePokemon = game.active[opponent];
+  if (oppActivePokemon == null) {
     throw new InvalidGameStateError("Opponent has no active Pokemon.");
   }
-  return oppActivePokemonState;
+  return oppActivePokemon;
+}
+
+export function getPokemonStateByCardId(
+  game: InternalGameState,
+  cardId: CardGameId
+): PokemonState {
+  const pokemonState = game.pokemonStates.find(
+    (p) => p.cardReference.cardId === cardId
+  );
+  if (pokemonState == null) {
+    throw new CardInstanceNotFoundError(
+      `Pokemon state not found for card ID [${cardId}].`
+    );
+  }
+  return pokemonState;
 }
 
 export function hasMetEnergyRequirements(
@@ -57,6 +78,34 @@ export function hasMetEnergyRequirements(
     }
   }
   return Object.keys(requirementsCopy).length === 0;
+}
+
+function updatePokemonStates(
+  game: InternalGameState,
+  nextPokemonStates: PokemonState[]
+): InternalGameState {
+  const nextStatesByCardId = new Map(
+    nextPokemonStates.map((p) => [p.cardReference.cardId, p])
+  );
+  const withNewState = game.pokemonStates.map((currentState) => {
+    const nextState = nextStatesByCardId.get(currentState.cardReference.cardId);
+    if (nextState) {
+      return nextState;
+    }
+    return currentState;
+  });
+  const nextGame = {
+    ...game,
+    pokemonStates: withNewState,
+  };
+  return nextGame;
+}
+
+function removePokemonStateByCardId(
+  pokemonStates: PokemonState[],
+  cardId: CardGameId
+): PokemonState[] {
+  return pokemonStates.filter((p) => p.cardReference.cardId !== cardId);
 }
 
 export function getGameResult(game: InternalGameState): GameResult {
@@ -111,21 +160,31 @@ export function applyKnockoutsAndWinConditions(
   const nextGame = { ...game };
   // Check for knockouts to active Pokemon.
   const activeA = game.active[Player.A];
-  if (activeA && isKnockedOut(activeA)) {
+  if (activeA && isKnockedOut(getPokemonStateByCardId(game, activeA.cardId))) {
+    // Remove knocked out Pokemon.
     nextGame.active[Player.A] = null;
-    const config = registry.getPokemonCardByStableId(
-      activeA.cardReference.cardStableId
+    nextGame.pokemonStates = removePokemonStateByCardId(
+      nextGame.pokemonStates,
+      activeA.cardId
     );
+
+    // Award prize points to opponent.
+    const config = registry.getPokemonCardByStableId(activeA.cardStableId);
     const points = getPrizePointsForPokemon(config);
     nextGame.prizePoints[Player.B] = game.prizePoints[Player.B] + points;
   }
 
   const activeB = game.active[Player.B];
-  if (activeB && isKnockedOut(activeB)) {
+  if (activeB && isKnockedOut(getPokemonStateByCardId(game, activeB.cardId))) {
+    // Remove knocked out Pokemon.
     nextGame.active[Player.B] = null;
-    const config = registry.getPokemonCardByStableId(
-      activeB.cardReference.cardStableId
+    nextGame.pokemonStates = removePokemonStateByCardId(
+      nextGame.pokemonStates,
+      activeB.cardId
     );
+
+    // Award prize points to opponent.
+    const config = registry.getPokemonCardByStableId(activeB.cardStableId);
     const points = getPrizePointsForPokemon(config);
     nextGame.prizePoints[Player.A] = game.prizePoints[Player.A] + points;
   }
@@ -137,4 +196,83 @@ export function applyKnockoutsAndWinConditions(
     gameResult: getGameResult(nextGame),
   };
   return withWinConditions;
+}
+
+function getTargetPokemonStateByCardId(
+  game: InternalGameState,
+  cardId: CardGameId
+): PokemonState {
+  const targetState = getPokemonStateByCardId(game, cardId);
+  if (targetState == null) {
+    throw new CardInstanceNotFoundError(
+      `Pokemon instance not found for card ID [${cardId}].`
+    );
+  }
+  return targetState;
+}
+
+function applyWeakness(
+  attackingType: PokemonType,
+  defendingCard: PokemonCardConfig,
+  baseDamage: number
+): number {
+  const weakness = defendingCard.typeWeaknesses.find(
+    (w) => w === attackingType
+  );
+  if (weakness) {
+    return baseDamage * 2;
+  }
+  return baseDamage;
+}
+
+export function transformAttackResult(
+  game: InternalGameState,
+  registry: Registry,
+  result: EngineAttackResult
+): EngineAttackResult {
+  const damages = result.damages.map((d) => {
+    const targetCard = getTargetPokemonStateByCardId(game, d.targetCardId);
+    const targetPokemonCard = registry.getPokemonCardByStableId(
+      targetCard.cardReference.cardStableId
+    );
+    const damageAfterWeakness = applyWeakness(
+      result.attackingType,
+      targetPokemonCard,
+      d.damage
+    );
+    return {
+      ...d,
+      damage: damageAfterWeakness,
+    };
+  });
+
+  // TODO: Apply abilities that affect attacks.
+  // TODO: Apply effects that affect attacks
+
+  return {
+    ...result,
+    damages,
+  };
+}
+
+export function applyAttackResult(
+  game: InternalGameState,
+  result: EngineAttackResult
+): InternalGameState {
+  const currentGame = { ...game };
+  const uniqueTargets = new Set(result.damages.map((d) => d.targetCardId));
+  if (uniqueTargets.size !== result.damages.length) {
+    throw new InvalidAttackResultError(
+      "Found multiple damages with the same target card ID."
+    );
+  }
+  const newPokemonStates = result.damages.map((d) => {
+    const targetState = getTargetPokemonStateByCardId(game, d.targetCardId);
+    targetState.currentHealthPoints =
+      targetState.currentHealthPoints - d.damage;
+    return targetState;
+  });
+
+  const nextGame = updatePokemonStates(currentGame, newPokemonStates);
+  return nextGame;
 }

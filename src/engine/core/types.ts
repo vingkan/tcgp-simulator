@@ -64,6 +64,7 @@ export type EnergyCount = number;
 export type HealthPoints = number;
 
 export type PokemonState = {
+  player: Player;
   cardReference: CardReference<CardClass.POKEMON>;
   currentHealthPoints: HealthPoints;
   // currentStatusCondition
@@ -89,7 +90,9 @@ export enum GameResult {
   DRAW = "draw",
 }
 
-type BenchSlot = PokemonState | null;
+export type PokemonSlot = CardReference<CardClass.POKEMON>;
+
+type BenchSlot = PokemonSlot | null;
 
 type Bench = [BenchSlot, BenchSlot, BenchSlot];
 
@@ -98,13 +101,14 @@ export type InternalGameState = {
   turnNumber: TurnNumber;
   activePlayer: Player;
   currentTurnAllowances: TurnAllowances;
+  pokemonStates: PokemonState[];
   prizePoints: {
     [Player.A]: PrizePoints;
     [Player.B]: PrizePoints;
   };
   active: {
-    [Player.A]: PokemonState | null;
-    [Player.B]: PokemonState | null;
+    [Player.A]: PokemonSlot | null;
+    [Player.B]: PokemonSlot | null;
   };
   bench: {
     [Player.A]: Bench;
@@ -158,6 +162,21 @@ export type AttackParams = {
   targetCardId?: CardGameId;
 };
 
+export type AttackDamage = {
+  targetCardId: CardGameId;
+  damage: number;
+};
+
+export type AttackResult = {
+  damages: AttackDamage[];
+  // TODO: Model status conditions.
+  // TODO: Model side effects.
+};
+
+export type EngineAttackResult = AttackResult & {
+  attackingType: PokemonType;
+};
+
 export type AttackPreview = {
   expectedDamageToOpponentActivePokemon: number;
 };
@@ -174,7 +193,7 @@ export type AttackConfig = {
   description: string | null;
   energyRequirements: AttackEnergyRequirements;
   damageDescriptor: string;
-  onUse: (game: InternalGameState, params: AttackParams) => InternalGameState;
+  onUse: (game: InternalGameState, params: AttackParams) => AttackResult;
   onPreview: (game: InternalGameState) => AttackPreview;
 };
 

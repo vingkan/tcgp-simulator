@@ -120,6 +120,11 @@ describe("getGameResult", () => {
   });
 
   it("awards victory to player A if B whited out, even if B had more prize points", () => {
+    const pokemonState = makeInitialPokemonState({
+      player: Player.A,
+      pokemonCardConfig: basicPokemonCard,
+      cardId: "1",
+    });
     expect(
       getGameResult({
         ...makeEmptyGameState(),
@@ -127,13 +132,9 @@ describe("getGameResult", () => {
           [Player.A]: 1,
           [Player.B]: 2,
         },
+        pokemonStates: [pokemonState],
         active: {
-          [Player.A]: {
-            ...makeInitialPokemonState({
-              pokemonCardConfig: basicPokemonCard,
-              cardId: "1",
-            }),
-          },
+          [Player.A]: pokemonState.cardReference,
           [Player.B]: null,
         },
       })

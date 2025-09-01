@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EnergyType, GameResult, Player } from "../../core/types";
-import { bulbasaur, vineWhip } from "./cards";
+import { bite, bulbasaur, growlithe, vineWhip } from "./cards";
 import { makeInitialPokemonState } from "../../core/makers";
 import { AdminGameEngine } from "../../admin/main";
 import { EnergyRequirementNotMetError } from "../../core/errors";
@@ -26,21 +26,25 @@ describe("one vs one", () => {
       },
     });
 
+    const pokemonA = {
+      ...makeInitialPokemonState({
+        player: Player.A,
+        pokemonCardConfig: bulbasaur,
+        cardId: "1",
+      }),
+      attachedEnergy: [EnergyType.GRASS, EnergyType.GRASS],
+    };
+    const pokemonB = makeInitialPokemonState({
+      player: Player.B,
+      pokemonCardConfig: bulbasaur,
+      cardId: "2",
+    });
+
     engine.updateGameState({
+      pokemonStates: [pokemonA, pokemonB],
       active: {
-        [Player.A]: {
-          ...makeInitialPokemonState({
-            pokemonCardConfig: bulbasaur,
-            cardId: "1",
-          }),
-          attachedEnergy: [EnergyType.GRASS, EnergyType.GRASS],
-        },
-        [Player.B]: {
-          ...makeInitialPokemonState({
-            pokemonCardConfig: bulbasaur,
-            cardId: "2",
-          }),
-        },
+        [Player.A]: pokemonA.cardReference,
+        [Player.B]: pokemonB.cardReference,
       },
     });
 
@@ -52,13 +56,7 @@ describe("one vs one", () => {
       ...initial,
       turnNumber: 2,
       activePlayer: Player.B,
-      active: {
-        ...initial.active,
-        [Player.B]: {
-          ...initial.active[Player.B],
-          currentHealthPoints: 30,
-        },
-      },
+      pokemonStates: [pokemonA, { ...pokemonB, currentHealthPoints: 30 }],
     };
     expect(actual).toStrictEqual(expected);
   });
@@ -83,20 +81,22 @@ describe("one vs one", () => {
       },
     });
 
+    const pokemonA = makeInitialPokemonState({
+      player: Player.A,
+      pokemonCardConfig: bulbasaur,
+      cardId: "1",
+    });
+    const pokemonB = makeInitialPokemonState({
+      player: Player.B,
+      pokemonCardConfig: bulbasaur,
+      cardId: "2",
+    });
+
     engine.updateGameState({
+      pokemonStates: [pokemonA, pokemonB],
       active: {
-        [Player.A]: {
-          ...makeInitialPokemonState({
-            pokemonCardConfig: bulbasaur,
-            cardId: "1",
-          }),
-        },
-        [Player.B]: {
-          ...makeInitialPokemonState({
-            pokemonCardConfig: bulbasaur,
-            cardId: "2",
-          }),
-        },
+        [Player.A]: pokemonA.cardReference,
+        [Player.B]: pokemonB.cardReference,
       },
     });
 
@@ -125,22 +125,28 @@ describe("one vs one", () => {
       },
     });
 
+    const pokemonA = {
+      ...makeInitialPokemonState({
+        player: Player.A,
+        pokemonCardConfig: bulbasaur,
+        cardId: "1",
+      }),
+      attachedEnergy: [EnergyType.GRASS, EnergyType.GRASS],
+    };
+    const pokemonB = {
+      ...makeInitialPokemonState({
+        player: Player.B,
+        pokemonCardConfig: bulbasaur,
+        cardId: "2",
+      }),
+      currentHealthPoints: 40,
+    };
+
     engine.updateGameState({
+      pokemonStates: [pokemonA, pokemonB],
       active: {
-        [Player.A]: {
-          ...makeInitialPokemonState({
-            pokemonCardConfig: bulbasaur,
-            cardId: "1",
-          }),
-          attachedEnergy: [EnergyType.GRASS, EnergyType.GRASS],
-        },
-        [Player.B]: {
-          ...makeInitialPokemonState({
-            pokemonCardConfig: bulbasaur,
-            cardId: "2",
-          }),
-          currentHealthPoints: 40,
-        },
+        [Player.A]: pokemonA.cardReference,
+        [Player.B]: pokemonB.cardReference,
       },
     });
 
@@ -153,6 +159,7 @@ describe("one vs one", () => {
       gameResult: GameResult.PLAYER_A_WON,
       turnNumber: 2,
       activePlayer: Player.B,
+      pokemonStates: [pokemonA],
       active: {
         ...initial.active,
         [Player.B]: null,
@@ -161,6 +168,61 @@ describe("one vs one", () => {
         [Player.A]: 1,
         [Player.B]: 0,
       },
+    };
+    expect(actual).toStrictEqual(expected);
+  });
+
+  it("damages the opponent's active Pokemon with weaknesses", () => {
+    const engine = new AdminGameEngine({
+      allCards: [bulbasaur, growlithe],
+      allAttacks: [vineWhip, bite],
+      deckA: {
+        name: "deckA",
+        energyZoneTypes: [EnergyType.FIRE],
+        cards: {
+          [growlithe.stableId]: 1,
+        },
+      },
+      deckB: {
+        name: "deckB",
+        energyZoneTypes: [EnergyType.GRASS],
+        cards: {
+          [bulbasaur.stableId]: 1,
+        },
+      },
+    });
+
+    const pokemonA = {
+      ...makeInitialPokemonState({
+        player: Player.A,
+        pokemonCardConfig: growlithe,
+        cardId: "1",
+      }),
+      attachedEnergy: [EnergyType.FIRE, EnergyType.FIRE],
+    };
+    const pokemonB = makeInitialPokemonState({
+      player: Player.B,
+      pokemonCardConfig: bulbasaur,
+      cardId: "2",
+    });
+
+    engine.updateGameState({
+      pokemonStates: [pokemonA, pokemonB],
+      active: {
+        [Player.A]: pokemonA.cardReference,
+        [Player.B]: pokemonB.cardReference,
+      },
+    });
+
+    const initial = engine.getGameState();
+    engine.useAttack(bite.id, {});
+
+    const actual = engine.getGameState();
+    const expected = {
+      ...initial,
+      turnNumber: 2,
+      activePlayer: Player.B,
+      pokemonStates: [pokemonA, { ...pokemonB, currentHealthPoints: 30 }],
     };
     expect(actual).toStrictEqual(expected);
   });

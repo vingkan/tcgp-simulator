@@ -1,6 +1,10 @@
 export class InvalidGameStateError extends Error {}
 
+export class InvalidAttackResultError extends Error {}
+
 export class CardNotFoundError extends Error {}
+
+export class CardInstanceNotFoundError extends Error {}
 
 export class AttackNotFoundError extends Error {}
 
