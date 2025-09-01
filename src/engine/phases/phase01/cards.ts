@@ -10,7 +10,7 @@ export const vineWhip = makeSimpleDamagingMove({
   damage: 40,
   energyRequirements: {
     [EnergyRequirementType.GRASS]: 1,
-    [EnergyRequirementType.ANY]: 0,
+    [EnergyRequirementType.ANY]: 1,
   },
 });
 

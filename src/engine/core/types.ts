@@ -68,7 +68,7 @@ export type PokemonState = {
   currentHealthPoints: HealthPoints;
   // currentStatusCondition
   // currentEffects
-  attachedEnergy: Partial<Record<EnergyType, EnergyCount>>;
+  attachedEnergy: EnergyType[];
   attachedTool: CardReference<CardClass.TOOL> | null;
   // allowedAttacks
   evolvedFrom: CardReference<CardClass.POKEMON>[];

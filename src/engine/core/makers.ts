@@ -133,7 +133,7 @@ export function makeInitialPokemonState(p: {
       cardClass: CardClass.POKEMON,
     },
     currentHealthPoints: p.pokemonCardConfig.baseHealthPoints,
-    attachedEnergy: {},
+    attachedEnergy: [],
     attachedTool: null,
     evolvedFrom: [],
   };

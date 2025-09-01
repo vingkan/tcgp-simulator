@@ -13,8 +13,14 @@ import {
   getAttacksById,
   getPokemonCardsByStableId,
   getOwnActivePokemon,
+  hasMetEnergyRequirements,
 } from "./utils";
-import { CardNotFoundError, AttackNotFoundError } from "./errors";
+import {
+  CardNotFoundError,
+  AttackNotFoundError,
+  EnergyRequirementNotMetError,
+} from "./errors";
+import { getEnergyRequirementsNotMetMessage } from "./stringify";
 
 export class GameEngine {
   private gameState: InternalGameState = makeEmptyGameState();
@@ -77,6 +83,21 @@ export class GameEngine {
     }
 
     const attack = this.getAttackById(attackId);
+    if (
+      !hasMetEnergyRequirements(
+        attack.energyRequirements,
+        ownActive.attachedEnergy
+      )
+    ) {
+      throw new EnergyRequirementNotMetError(
+        getEnergyRequirementsNotMetMessage(
+          attackId,
+          attack.energyRequirements,
+          ownActive.attachedEnergy
+        )
+      );
+    }
+
     const nextGame = attack.onUse(game, params);
     this.setGameState(nextGame);
     this.endTurn();

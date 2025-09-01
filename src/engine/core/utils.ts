@@ -1,9 +1,11 @@
 import {
   AttackConfig,
+  AttackEnergyRequirements,
   AttackId,
   CardClass,
   CardConfig,
   CardStableId,
+  EnergyRequirementType,
   InternalGameState,
   Player,
   PokemonCardConfig,
@@ -50,4 +52,32 @@ export function getOpponentActivePokemon(
     throw new InvalidGameStateError("Opponent has no active Pokemon.");
   }
   return oppActivePokemonState;
+}
+
+export function hasMetEnergyRequirements(
+  energyRequirements: AttackEnergyRequirements,
+  attachedEnergy: PokemonState["attachedEnergy"]
+): boolean {
+  const requirementsCopy = { ...energyRequirements };
+  for (const energyType of attachedEnergy) {
+    const typedRemainingCost = requirementsCopy[energyType] ?? 0;
+    if (typedRemainingCost > 0) {
+      requirementsCopy[energyType] = typedRemainingCost - 1;
+      if (requirementsCopy[energyType] === 0) {
+        delete requirementsCopy[energyType];
+      }
+      continue;
+    }
+
+    const colorlessRemainingCost =
+      requirementsCopy[EnergyRequirementType.ANY] ?? 0;
+    if (colorlessRemainingCost > 0) {
+      requirementsCopy[EnergyRequirementType.ANY] = colorlessRemainingCost - 1;
+      if (requirementsCopy[EnergyRequirementType.ANY] === 0) {
+        delete requirementsCopy[EnergyRequirementType.ANY];
+      }
+      continue;
+    }
+  }
+  return Object.keys(requirementsCopy).length === 0;
 }
