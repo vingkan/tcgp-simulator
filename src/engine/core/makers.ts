@@ -1,5 +1,6 @@
 import {
   AttackConfig,
+  AttackEffect,
   AttackEnergyRequirements,
   AttackId,
   AttackResult,
@@ -19,12 +20,13 @@ import {
 } from "./types";
 import { getOpponentActivePokemon } from "./utils";
 
-export function makeSimpleDamagingMove(d: {
+export function makeDamagingMove(d: {
   id: string;
   name: string;
   description?: string;
   damage: number;
   energyRequirements: AttackEnergyRequirements;
+  withEffect?: (game: InternalGameState) => AttackEffect;
 }): AttackConfig {
   const { damage } = d;
   return {
@@ -35,6 +37,7 @@ export function makeSimpleDamagingMove(d: {
     damageDescriptor: damage.toString(),
     onUse: (game: InternalGameState): AttackResult => {
       const opponentActivePokemon = getOpponentActivePokemon(game);
+      const effects = d.withEffect ? [d.withEffect(game)] : [];
 
       return {
         damages: [
@@ -43,6 +46,7 @@ export function makeSimpleDamagingMove(d: {
             damage,
           },
         ],
+        effects,
       };
     },
     onPreview: () => {

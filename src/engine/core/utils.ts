@@ -11,6 +11,7 @@ import {
   PokemonSlot,
   EngineAttackResult,
   PokemonType,
+  AttackEffectType,
 } from "./types";
 import {
   CardInstanceNotFoundError,
@@ -266,13 +267,36 @@ export function applyAttackResult(
       "Found multiple damages with the same target card ID."
     );
   }
-  const newPokemonStates = result.damages.map((d) => {
+
+  const damagedStates = result.damages.map((d) => {
     const targetState = getTargetPokemonStateByCardId(game, d.targetCardId);
-    targetState.currentHealthPoints =
-      targetState.currentHealthPoints - d.damage;
-    return targetState;
+    const nextState = { ...targetState };
+    nextState.currentHealthPoints = nextState.currentHealthPoints - d.damage;
+    return nextState;
   });
 
-  const nextGame = updatePokemonStates(currentGame, newPokemonStates);
+  const damagesApplied = updatePokemonStates(currentGame, damagedStates);
+
+  const affectedStates = result.effects
+    .map((e) => {
+      if (e.type === AttackEffectType.DISCARD_SINGLE_ENERGY) {
+        const targetState = getTargetPokemonStateByCardId(game, e.targetCardId);
+        const nextState = { ...targetState };
+        const affectedEnergy = nextState.attachedEnergy.filter(
+          (t) => t !== e.energyType
+        );
+        const safeEnergy = nextState.attachedEnergy.filter(
+          (t) => t !== e.energyType
+        );
+        affectedEnergy.pop();
+        const nextEnergy = [...affectedEnergy, ...safeEnergy];
+        nextState.attachedEnergy = nextEnergy;
+        return nextState;
+      }
+      return null;
+    })
+    .filter((s) => s !== null);
+
+  const nextGame = updatePokemonStates(damagesApplied, affectedStates);
   return nextGame;
 }

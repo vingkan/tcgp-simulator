@@ -18,7 +18,9 @@ const ENERGY_TYPE_TO_ICON: Record<EnergyRequirementType, string> = {
   [EnergyRequirementType.ANY]: "⭐",
 };
 
-function stringifyEnergyType(type: EnergyRequirementType | EnergyType): string {
+export function stringifyEnergyType(
+  type: EnergyRequirementType | EnergyType
+): string {
   // EnergyType is a subset of EnergyRequirementType, so it will always be found.
   return ENERGY_TYPE_TO_ICON[type];
 }

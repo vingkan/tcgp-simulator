@@ -5,6 +5,7 @@ import {
   CardConfig,
   CardStableId,
   PokemonCardConfig,
+  SpeciesId,
 } from "./types";
 import {
   AttackNotFoundError,
@@ -67,6 +68,15 @@ export class Registry {
       );
     }
     return card as PokemonCardConfig;
+  }
+
+  public getPokemonCardsForSpeciesId(
+    speciesId: SpeciesId
+  ): PokemonCardConfig[] {
+    const pokemonCards = Object.values(this.cardsByStableId).filter(
+      (card) => card.cardClass === CardClass.POKEMON
+    );
+    return pokemonCards.filter((card) => card.speciesId === speciesId);
   }
 
   public getAttackById(id: AttackId): AttackConfig {

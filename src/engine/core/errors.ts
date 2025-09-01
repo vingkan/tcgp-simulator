@@ -1,3 +1,5 @@
+export class InvalidCardConfigurationError extends Error {}
+
 export class InvalidGameStateError extends Error {}
 
 export class InvalidAttackResultError extends Error {}

@@ -167,8 +167,19 @@ export type AttackDamage = {
   damage: number;
 };
 
+export enum AttackEffectType {
+  DISCARD_SINGLE_ENERGY = "discard_single_energy",
+}
+
+export type AttackEffect = {
+  type: AttackEffectType.DISCARD_SINGLE_ENERGY;
+  targetCardId: CardGameId;
+  energyType: EnergyType;
+};
+
 export type AttackResult = {
   damages: AttackDamage[];
+  effects: AttackEffect[];
   // TODO: Model status conditions.
   // TODO: Model side effects.
 };

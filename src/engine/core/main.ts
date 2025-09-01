@@ -41,6 +41,7 @@ export class GameEngine {
 
   public endTurn() {
     const game = this.getGameState();
+    // TODO: Apply abilities and effects that occur between turns.
     const newGame = {
       ...game,
       turnNumber: game.turnNumber + 1,
