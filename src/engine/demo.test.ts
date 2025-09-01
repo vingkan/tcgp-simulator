@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import { doTurn } from "./demo";
 import { GameState } from "./types";
 
