@@ -1,67 +1,43 @@
 import {
-  AttackConfig,
   AttackId,
   AttackParams,
-  CardStableId,
   GameParams,
   InternalGameState,
   Player,
-  PokemonCardConfig,
 } from "./types";
 import { makeEmptyGameState } from "./makers";
 import {
-  getAttacksById,
-  getPokemonCardsByStableId,
+  applyKnockoutsAndWinConditions,
   getOwnActivePokemon,
   hasMetEnergyRequirements,
 } from "./utils";
-import {
-  CardNotFoundError,
-  AttackNotFoundError,
-  EnergyRequirementNotMetError,
-} from "./errors";
+import { AttackNotFoundError, EnergyRequirementNotMetError } from "./errors";
 import { getEnergyRequirementsNotMetMessage } from "./stringify";
+import { Registry } from "./registry";
 
 export class GameEngine {
   private gameState: InternalGameState = makeEmptyGameState();
-  private pokemonByStableId: Record<CardStableId, PokemonCardConfig> = {};
-  private attacksById: Record<AttackId, AttackConfig> = {};
+  private registry: Registry;
 
   constructor(params: GameParams) {
-    this.pokemonByStableId = getPokemonCardsByStableId(params.allCards);
-    this.attacksById = getAttacksById(params.allAttacks);
+    this.registry = new Registry(params);
   }
 
   protected getGameState() {
-    return this.gameState;
+    // TODO: Replace with a deep copy to avoid mutating nested fields.
+    return { ...this.gameState };
+  }
+
+  protected getRegistry() {
+    return this.registry;
   }
 
   protected setGameState(gameState: InternalGameState) {
     this.gameState = gameState;
   }
 
-  protected getPokemonCardByStableId(
-    stableId: CardStableId
-  ): PokemonCardConfig {
-    const card = this.pokemonByStableId[stableId];
-    if (card == null) {
-      throw new CardNotFoundError(
-        `Pokemon card not found for stable ID [${stableId}].`
-      );
-    }
-    return card;
-  }
-
-  protected getAttackById(attackId: AttackId): AttackConfig {
-    const attack = this.attacksById[attackId];
-    if (attack == null) {
-      throw new AttackNotFoundError(`Attack not found for ID [${attackId}].`);
-    }
-    return attack;
-  }
-
   public endTurn() {
-    const game = this.gameState;
+    const game = this.getGameState();
     const newGame = {
       ...game,
       turnNumber: game.turnNumber + 1,
@@ -71,9 +47,9 @@ export class GameEngine {
   }
 
   public useAttack(attackId: AttackId, params: AttackParams) {
-    const game = this.gameState;
+    const game = this.getGameState();
     const ownActive = getOwnActivePokemon(game);
-    const activeCardConfig = this.getPokemonCardByStableId(
+    const activeCardConfig = this.registry.getPokemonCardByStableId(
       ownActive.cardReference.cardStableId
     );
     if (!activeCardConfig.attacks.includes(attackId)) {
@@ -82,7 +58,7 @@ export class GameEngine {
       );
     }
 
-    const attack = this.getAttackById(attackId);
+    const attack = this.registry.getAttackById(attackId);
     if (
       !hasMetEnergyRequirements(
         attack.energyRequirements,
@@ -98,7 +74,15 @@ export class GameEngine {
       );
     }
 
-    const nextGame = attack.onUse(game, params);
+    const initialAttackGame = attack.onUse(game, params);
+    // TODO: Apply weaknesses.
+    // TODO: Apply abilities that affect attacks.
+    // TODO: Apply effects that affect attacks.
+
+    const nextGame = applyKnockoutsAndWinConditions(
+      initialAttackGame,
+      this.registry
+    );
     this.setGameState(nextGame);
     this.endTurn();
   }

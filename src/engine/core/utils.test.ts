@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { hasMetEnergyRequirements } from "./utils";
-import { EnergyRequirementType, EnergyType } from "./types";
+import { getGameResult, hasMetEnergyRequirements } from "./utils";
+import {
+  EnergyRequirementType,
+  EnergyType,
+  GameResult,
+  Player,
+  PokemonType,
+} from "./types";
+import {
+  makeBasicPokemonCard,
+  makeEmptyGameState,
+  makeInitialPokemonState,
+} from "./makers";
 
-describe("utils", () => {
+describe("hasMetEnergyRequirements", () => {
   it("satisfies single type, single energy requirements", () => {
     expect(
       hasMetEnergyRequirements(
@@ -93,5 +104,39 @@ describe("utils", () => {
         [EnergyType.WATER, EnergyType.FIRE]
       )
     ).toBe(false);
+  });
+});
+
+describe("getGameResult", () => {
+  const basicPokemonCard = makeBasicPokemonCard({
+    stableId: "1",
+    name: "Testmon",
+    speciesId: "1",
+    type: PokemonType.METAL,
+    baseHealthPoints: 50,
+    attacks: [],
+    typeWeaknesses: [],
+    retreatCost: 0,
+  });
+
+  it("awards victory to player A if B whited out, even if B had more prize points", () => {
+    expect(
+      getGameResult({
+        ...makeEmptyGameState(),
+        prizePoints: {
+          [Player.A]: 1,
+          [Player.B]: 2,
+        },
+        active: {
+          [Player.A]: {
+            ...makeInitialPokemonState({
+              pokemonCardConfig: basicPokemonCard,
+              cardId: "1",
+            }),
+          },
+          [Player.B]: null,
+        },
+      })
+    ).toBe(GameResult.PLAYER_A_WON);
   });
 });

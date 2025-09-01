@@ -6,6 +6,7 @@ import {
   CardGameId,
   CardStableId,
   EnergyCount,
+  GameResult,
   HealthPoints,
   InternalGameState,
   Player,
@@ -88,6 +89,7 @@ export function makeBasicPokemonCard(p: {
 
 export function makeEmptyGameState(): InternalGameState {
   return {
+    gameResult: GameResult.IN_PROGRESS,
     turnNumber: 1,
     activePlayer: Player.A,
     currentTurnAllowances: {

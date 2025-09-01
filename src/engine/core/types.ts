@@ -82,11 +82,19 @@ export type TurnAllowances = {
 
 export type PrizePoints = number;
 
+export enum GameResult {
+  IN_PROGRESS = "in_progress",
+  PLAYER_A_WON = "player_a_won",
+  PLAYER_B_WON = "player_b_won",
+  DRAW = "draw",
+}
+
 type BenchSlot = PokemonState | null;
 
 type Bench = [BenchSlot, BenchSlot, BenchSlot];
 
 export type InternalGameState = {
+  gameResult: GameResult;
   turnNumber: TurnNumber;
   activePlayer: Player;
   currentTurnAllowances: TurnAllowances;
@@ -120,7 +128,15 @@ export type TurnNumber = number;
 
 export type CardCount = number;
 
+enum PlayerGameResult {
+  IN_PROGRESS = "in_progress",
+  WON = "won",
+  LOST = "lost",
+  DRAW = "draw",
+}
+
 export type PlayerGameState = {
+  gameResult: PlayerGameResult;
   turnNumber: TurnNumber;
   isOwnTurn: boolean;
   ownPrizePoints: PrizePoints;
