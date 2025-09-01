@@ -1,0 +1,19 @@
+{
+    "name": "TCGP Simulator",
+    "short_name": "TCGP Simulator",
+    "description": "TCGP Simulator",
+    "theme_color": "#ff1b1c",
+    "background_color": "#ff1b1c",
+    "display": "standalone",
+    "orientation": "portrait",
+    "scope": "/",
+    "start_url": "/",
+    "icons": [
+      {
+        "src": "/tcgp-simulator/icon.png",
+        "type": "image/png",
+        "sizes": "128x128",
+        "purpose": "any maskable"
+      }
+    ]
+  }
