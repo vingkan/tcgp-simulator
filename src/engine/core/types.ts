@@ -15,7 +15,7 @@ export enum CardClass {
   TOOL = "tool",
 }
 
-export enum EnergyType {
+export enum EnergyRequirementType {
   GRASS = "grass",
   FIRE = "fire",
   WATER = "water",
@@ -24,6 +24,18 @@ export enum EnergyType {
   PSYCHIC = "psychic",
   DARK = "dark",
   METAL = "metal",
+  ANY = "any",
+}
+
+export enum EnergyType {
+  GRASS = EnergyRequirementType.GRASS,
+  FIRE = EnergyRequirementType.FIRE,
+  WATER = EnergyRequirementType.WATER,
+  LIGHTNING = EnergyRequirementType.LIGHTNING,
+  FIGHTING = EnergyRequirementType.FIGHTING,
+  PSYCHIC = EnergyRequirementType.PSYCHIC,
+  DARK = EnergyRequirementType.DARK,
+  METAL = EnergyRequirementType.METAL,
 }
 
 export enum PokemonType {
@@ -126,8 +138,6 @@ export type PlayerGameState = {
   opponentDiscardPile: CardReference<CardClass>[];
 };
 
-export class InvalidGameStateError extends Error {}
-
 export type AttackParams = {
   targetCardId?: CardGameId;
 };
@@ -138,16 +148,15 @@ export type AttackPreview = {
 
 export type AttackId = Branded<string, "AttackId">;
 
-export type AttackEnergyCost = {
-  typedEnergy: Partial<Record<EnergyType, EnergyCount>>;
-  colorlessEnergy: EnergyCount;
-};
+export type AttackEnergyRequirements = Partial<
+  Record<EnergyRequirementType, EnergyCount>
+>;
 
 export type AttackConfig = {
   id: AttackId;
   name: string;
-  energyCost: AttackEnergyCost;
   description: string | null;
+  energyRequirements: AttackEnergyRequirements;
   damageDescriptor: string;
   onUse: (game: InternalGameState, params: AttackParams) => InternalGameState;
   onPreview: (game: InternalGameState) => AttackPreview;
@@ -207,4 +216,11 @@ export type DeckConfig = {
   name: string;
   energyZoneTypes: EnergyType[];
   cards: Record<CardStableId, CardCount>;
+};
+
+export type GameParams = {
+  allCards: CardConfig[];
+  allAttacks: AttackConfig[];
+  deckA: DeckConfig;
+  deckB: DeckConfig;
 };
