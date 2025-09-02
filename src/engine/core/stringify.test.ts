@@ -13,7 +13,7 @@ describe("getEnergyRequirementsNotMetMessage", () => {
         [EnergyType.FIRE]
       )
     ).toBe(
-      "Energy requirements not met for attack [vine_whip]. Required: 🌱. Attached: 🔥."
+      "Energy requirements not met for attack [vine_whip]. Required: G. Attached: R."
     );
   });
 
@@ -28,7 +28,7 @@ describe("getEnergyRequirementsNotMetMessage", () => {
         [EnergyType.GRASS]
       )
     ).toBe(
-      "Energy requirements not met for attack [vine_whip]. Required: 🌱⭐. Attached: 🌱."
+      "Energy requirements not met for attack [vine_whip]. Required: GC. Attached: G."
     );
   });
 });

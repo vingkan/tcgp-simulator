@@ -15,3 +15,9 @@ export class EnergyRequirementNotMetError extends Error {}
 export class ImproperCardClassError extends Error {}
 
 export class InvalidParamsError extends Error {}
+
+export class NonEvolutionCardError extends Error {}
+
+export class DoesNotEvolveFromError extends Error {}
+
+export class IneligibleToEvolveThisTurnError extends Error {}

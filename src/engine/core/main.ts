@@ -1,6 +1,8 @@
 import {
   AttackId,
   AttackParams,
+  CardClass,
+  CardGameId,
   GameParams,
   InternalGameState,
   Player,
@@ -8,13 +10,23 @@ import {
 import { makeEmptyGameState } from "./makers";
 import {
   applyAttackResult,
+  applyEvolution,
   applyKnockoutsAndWinConditions,
+  getHandCardConfigByCardId,
   getOwnActivePokemon,
+  getPlayerPokemonStateByCardId,
   getPokemonStateByCardId,
   hasMetEnergyRequirements,
   transformAttackResult,
+  updateEvolvedPokemonState,
 } from "./utils";
-import { AttackNotFoundError, EnergyRequirementNotMetError } from "./errors";
+import {
+  AttackNotFoundError,
+  DoesNotEvolveFromError,
+  EnergyRequirementNotMetError,
+  ImproperCardClassError,
+  NonEvolutionCardError,
+} from "./errors";
 import { getEnergyRequirementsNotMetMessage } from "./stringify";
 import { Registry } from "./registry";
 
@@ -91,5 +103,73 @@ export class GameEngine {
     );
     this.setGameState(nextGame);
     this.endTurn();
+  }
+
+  public evolveTo(targetCardId: CardGameId, evolvedCardId: CardGameId) {
+    const game = this.getGameState();
+    const preEvolvedPokemonState = getPlayerPokemonStateByCardId(
+      game,
+      game.activePlayer,
+      targetCardId
+    );
+    const preEvolvedCardConfig = this.registry.getPokemonCardByStableId(
+      preEvolvedPokemonState.cardReference.cardStableId
+    );
+
+    const evolvedCardConfig = getHandCardConfigByCardId(
+      game,
+      this.registry,
+      game.activePlayer,
+      evolvedCardId
+    );
+    if (evolvedCardConfig.cardClass !== CardClass.POKEMON) {
+      throw new ImproperCardClassError(
+        `Card [${evolvedCardId}] is not a Pokemon card.`
+      );
+    }
+
+    const evolvesFromSpeciesId = evolvedCardConfig.evolvesFromSpeciesId;
+    if (evolvesFromSpeciesId == null) {
+      throw new NonEvolutionCardError(
+        `Card [${evolvedCardId}] is not an evolution card.`
+      );
+    }
+
+    const doesNotEvolveFromSpecies =
+      evolvesFromSpeciesId !== preEvolvedCardConfig.speciesId;
+    if (doesNotEvolveFromSpecies) {
+      throw new DoesNotEvolveFromError(
+        `Card [${evolvedCardId}] does not evolve from species [${preEvolvedCardConfig.speciesId}].`
+      );
+    }
+
+    // TODO: Throw error if the Pokemon is not eligible to evolve this turn.
+
+    const evolvedState = applyEvolution(
+      preEvolvedPokemonState,
+      preEvolvedCardConfig,
+      evolvedCardConfig,
+      evolvedCardId
+    );
+
+    const gameWithEvolvedPokemon = updateEvolvedPokemonState(
+      game,
+      targetCardId,
+      evolvedState
+    );
+
+    // Remove evolved card from hand.
+    const nextHand = {
+      ...gameWithEvolvedPokemon.hand,
+      [gameWithEvolvedPokemon.activePlayer]: gameWithEvolvedPokemon.hand[
+        gameWithEvolvedPokemon.activePlayer
+      ].filter((card) => card.cardId !== evolvedCardId),
+    };
+
+    const nextGame: InternalGameState = {
+      ...gameWithEvolvedPokemon,
+      hand: nextHand,
+    };
+    this.setGameState(nextGame);
   }
 }

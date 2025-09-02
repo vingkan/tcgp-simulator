@@ -92,9 +92,9 @@ export enum GameResult {
 
 export type PokemonSlot = CardReference<CardClass.POKEMON>;
 
-type BenchSlot = PokemonSlot | null;
+export type BenchSlot = PokemonSlot | null;
 
-type Bench = [BenchSlot, BenchSlot, BenchSlot];
+export type Bench = [BenchSlot, BenchSlot, BenchSlot];
 
 export type InternalGameState = {
   gameResult: GameResult;

@@ -3,11 +3,16 @@ import {
   EnergyRequirementType,
   EnergyType,
   InternalGameState,
+  PokemonStage,
   PokemonType,
-} from "../../core/types";
-import { makeBasicPokemonCard, makeDamagingMove } from "../../core/makers";
-import { stringifyEnergyType } from "../../core/stringify";
-import { getOwnActivePokemon } from "../../core/utils";
+} from "../../engine/core/types";
+import {
+  makeBasicPokemonCard,
+  makeDamagingMove,
+  makeEvolvedPokemonCard,
+} from "../../engine/core/makers";
+import { stringifyEnergyType } from "../../engine/core/stringify";
+import { getOwnActivePokemon } from "../../engine/core/utils";
 
 export const vineWhip = makeDamagingMove({
   id: "vine_whip",
@@ -28,6 +33,29 @@ export const bulbasaur = makeBasicPokemonCard({
   attacks: [vineWhip.id],
   typeWeaknesses: [PokemonType.FIRE],
   retreatCost: 1,
+});
+
+export const razorLeaf = makeDamagingMove({
+  id: "razor_leaf",
+  name: "Razor Leaf",
+  damage: 60,
+  energyRequirements: {
+    [EnergyRequirementType.GRASS]: 1,
+    [EnergyRequirementType.ANY]: 2,
+  },
+});
+
+export const ivysaur = makeEvolvedPokemonCard({
+  stableId: "a1-002",
+  name: "Ivysaur",
+  speciesId: "ivysaur",
+  stage: PokemonStage.STAGE_1,
+  evolvesFromSpeciesId: "bulbasaur",
+  type: PokemonType.GRASS,
+  baseHealthPoints: 90,
+  attacks: [razorLeaf.id],
+  typeWeaknesses: [PokemonType.FIRE],
+  retreatCost: 2,
 });
 
 const fire = stringifyEnergyType(EnergyType.FIRE);

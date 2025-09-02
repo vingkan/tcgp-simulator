@@ -6,7 +6,8 @@ import {
   PokemonState,
 } from "./types";
 
-const ENERGY_TYPE_TO_ICON: Record<EnergyRequirementType, string> = {
+// Currently unused, but it's for fun.
+export const ENERGY_TYPE_TO_ICON: Record<EnergyRequirementType, string> = {
   [EnergyRequirementType.GRASS]: "🌱",
   [EnergyRequirementType.FIRE]: "🔥",
   [EnergyRequirementType.WATER]: "💧",
@@ -18,11 +19,25 @@ const ENERGY_TYPE_TO_ICON: Record<EnergyRequirementType, string> = {
   [EnergyRequirementType.ANY]: "⭐",
 };
 
+// Use energy letters to match online formats.
+// Note that fire is R (red) and fighting is F.
+export const ENERGY_TYPE_TO_LETTER: Record<EnergyRequirementType, string> = {
+  [EnergyRequirementType.GRASS]: "G",
+  [EnergyRequirementType.FIRE]: "R",
+  [EnergyRequirementType.WATER]: "W",
+  [EnergyRequirementType.LIGHTNING]: "L",
+  [EnergyRequirementType.FIGHTING]: "F",
+  [EnergyRequirementType.PSYCHIC]: "P",
+  [EnergyRequirementType.DARK]: "D",
+  [EnergyRequirementType.METAL]: "M",
+  [EnergyRequirementType.ANY]: "C",
+};
+
 export function stringifyEnergyType(
   type: EnergyRequirementType | EnergyType
 ): string {
   // EnergyType is a subset of EnergyRequirementType, so it will always be found.
-  return ENERGY_TYPE_TO_ICON[type];
+  return ENERGY_TYPE_TO_LETTER[type];
 }
 
 function stringifyEnergyRequirements(

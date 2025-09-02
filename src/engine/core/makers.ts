@@ -5,7 +5,9 @@ import {
   AttackId,
   AttackResult,
   CardClass,
+  CardConfig,
   CardGameId,
+  CardReference,
   CardStableId,
   EnergyCount,
   GameResult,
@@ -85,6 +87,36 @@ export function makeBasicPokemonCard(p: {
   };
 }
 
+export function makeEvolvedPokemonCard(p: {
+  stableId: string;
+  name: string;
+  speciesId: string;
+  type: PokemonType;
+  baseHealthPoints: number;
+  attacks: AttackId[];
+  typeWeaknesses: PokemonType[];
+  retreatCost: number;
+  stage: PokemonStage.STAGE_1 | PokemonStage.STAGE_2;
+  evolvesFromSpeciesId: string;
+}): PokemonCardConfig {
+  return {
+    stableId: p.stableId as CardStableId,
+    cardClass: CardClass.POKEMON,
+    name: p.name,
+    speciesId: p.speciesId as SpeciesId,
+    type: p.type as PokemonType,
+    baseHealthPoints: p.baseHealthPoints as HealthPoints,
+    evolvesFromSpeciesId: p.evolvesFromSpeciesId as SpeciesId,
+    stage: p.stage as PokemonStage,
+    isEx: false,
+    isMegaEx: false,
+    isFossil: false,
+    attacks: p.attacks,
+    typeWeaknesses: p.typeWeaknesses as PokemonType[],
+    retreatCost: p.retreatCost as EnergyCount,
+  };
+}
+
 export function makeEmptyGameState(): InternalGameState {
   return {
     gameResult: GameResult.IN_PROGRESS,
@@ -139,5 +171,16 @@ export function makeInitialPokemonState(p: {
     attachedEnergy: [],
     attachedTool: null,
     evolvedFrom: [],
+  };
+}
+
+export function makeCardReferenceFromCard(
+  cardConfig: CardConfig,
+  cardId: string
+): CardReference<CardClass> {
+  return {
+    cardId: cardId as CardGameId,
+    cardStableId: cardConfig.stableId,
+    cardClass: cardConfig.cardClass,
   };
 }

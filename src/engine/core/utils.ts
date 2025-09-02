@@ -12,6 +12,9 @@ import {
   EngineAttackResult,
   PokemonType,
   AttackEffectType,
+  CardConfig,
+  CardClass,
+  Bench,
 } from "./types";
 import {
   CardInstanceNotFoundError,
@@ -53,6 +56,38 @@ export function getPokemonStateByCardId(
   return pokemonState;
 }
 
+export function getPlayerPokemonStateByCardId(
+  game: InternalGameState,
+  player: Player,
+  cardId: CardGameId
+): PokemonState {
+  const pokemonState = game.pokemonStates.find(
+    (p) => p.cardReference.cardId === cardId && p.player === player
+  );
+  if (pokemonState == null) {
+    throw new CardInstanceNotFoundError(
+      `Pokemon state not found for card ID [${cardId}] and player [${player}].`
+    );
+  }
+  return pokemonState;
+}
+
+export function getHandCardConfigByCardId(
+  game: InternalGameState,
+  registry: Registry,
+  player: Player,
+  cardId: CardGameId
+): CardConfig {
+  const handCard = game.hand[player].find((c) => c.cardId === cardId);
+  if (handCard == null) {
+    throw new CardInstanceNotFoundError(
+      `Could not find card in hand for player [${player}] with ID [${cardId}].`
+    );
+  }
+  const handCardConfig = registry.getCardByStableId(handCard.cardStableId);
+  return handCardConfig;
+}
+
 export function hasMetEnergyRequirements(
   energyRequirements: AttackEnergyRequirements,
   attachedEnergy: PokemonState["attachedEnergy"]
@@ -81,7 +116,7 @@ export function hasMetEnergyRequirements(
   return Object.keys(requirementsCopy).length === 0;
 }
 
-function updatePokemonStates(
+export function updatePokemonStates(
   game: InternalGameState,
   nextPokemonStates: PokemonState[]
 ): InternalGameState {
@@ -99,6 +134,59 @@ function updatePokemonStates(
     ...game,
     pokemonStates: withNewState,
   };
+  return nextGame;
+}
+
+export function updateEvolvedPokemonState(
+  game: InternalGameState,
+  preEvolvedCardId: CardGameId,
+  evolvedPokemonState: PokemonState
+): InternalGameState {
+  if (evolvedPokemonState.evolvedFrom.length === 0) {
+    throw new InvalidGameStateError(
+      `Evolved Pokemon state does not have any pre-evolved Pokemon.`
+    );
+  }
+
+  const latestPreEvolutionCardId =
+    evolvedPokemonState.evolvedFrom[evolvedPokemonState.evolvedFrom.length - 1]
+      .cardId;
+  const withNewState = game.pokemonStates.map((currentState) => {
+    if (currentState.cardReference.cardId === latestPreEvolutionCardId) {
+      return evolvedPokemonState;
+    }
+    return currentState;
+  });
+
+  const nextGame = {
+    ...game,
+    pokemonStates: withNewState,
+  };
+
+  // Update active Pokemon.
+  if (nextGame.active[Player.A]?.cardId === preEvolvedCardId) {
+    nextGame.active[Player.A] = evolvedPokemonState.cardReference;
+  }
+  if (nextGame.active[Player.B]?.cardId === preEvolvedCardId) {
+    nextGame.active[Player.B] = evolvedPokemonState.cardReference;
+  }
+
+  // Update bench Pokemon.
+  const nextBenchA = nextGame.bench[Player.A].map((slot) => {
+    if (slot?.cardId === preEvolvedCardId) {
+      return evolvedPokemonState.cardReference;
+    }
+    return slot;
+  }) as Bench;
+  nextGame.bench[Player.A] = nextBenchA;
+  const nextBenchB = nextGame.bench[Player.B].map((slot) => {
+    if (slot?.cardId === preEvolvedCardId) {
+      return evolvedPokemonState.cardReference;
+    }
+    return slot;
+  }) as Bench;
+  nextGame.bench[Player.B] = nextBenchB;
+
   return nextGame;
 }
 
@@ -299,4 +387,30 @@ export function applyAttackResult(
 
   const nextGame = updatePokemonStates(damagesApplied, affectedStates);
   return nextGame;
+}
+
+export function applyEvolution(
+  preEvolvedState: PokemonState,
+  preEvolvedCardConfig: PokemonCardConfig,
+  evolvedCardConfig: PokemonCardConfig,
+  evolvedCardId: CardGameId
+): PokemonState {
+  const currentState = { ...preEvolvedState };
+  const healthPointsGain =
+    evolvedCardConfig.baseHealthPoints - preEvolvedCardConfig.baseHealthPoints;
+  const nextHealthPoints = currentState.currentHealthPoints + healthPointsGain;
+  const nextState: PokemonState = {
+    ...currentState,
+    currentHealthPoints: nextHealthPoints,
+    cardReference: {
+      cardId: evolvedCardId,
+      cardStableId: evolvedCardConfig.stableId,
+      cardClass: CardClass.POKEMON,
+    },
+    evolvedFrom: [
+      ...preEvolvedState.evolvedFrom,
+      preEvolvedState.cardReference,
+    ],
+  };
+  return nextState;
 }
