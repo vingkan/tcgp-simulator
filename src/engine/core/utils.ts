@@ -1,3 +1,4 @@
+import { produce } from "immer";
 import {
   AttackEnergyRequirements,
   CardGameId,
@@ -15,6 +16,7 @@ import {
   CardConfig,
   CardClass,
   Bench,
+  TurnNumber,
 } from "./types";
 import {
   CardInstanceNotFoundError,
@@ -375,26 +377,25 @@ export function applyEvolution(
   preEvolvedState: PokemonState,
   preEvolvedCardConfig: PokemonCardConfig,
   evolvedCardConfig: PokemonCardConfig,
-  evolvedCardId: CardGameId
+  evolvedCardId: CardGameId,
+  playedOnTurn: TurnNumber
 ): PokemonState {
-  const currentState = { ...preEvolvedState };
-  const healthPointsGain =
-    evolvedCardConfig.baseHealthPoints - preEvolvedCardConfig.baseHealthPoints;
-  const nextHealthPoints = currentState.currentHealthPoints + healthPointsGain;
-  const nextState: PokemonState = {
-    ...currentState,
-    currentHealthPoints: nextHealthPoints,
-    cardReference: {
+  return produce(preEvolvedState, (draft) => {
+    const healthPointsGain =
+      evolvedCardConfig.baseHealthPoints -
+      preEvolvedCardConfig.baseHealthPoints;
+    draft.currentHealthPoints = draft.currentHealthPoints + healthPointsGain;
+    draft.cardReference = {
       cardId: evolvedCardId,
       cardStableId: evolvedCardConfig.stableId,
       cardClass: CardClass.POKEMON,
-    },
-    evolvedFrom: [
+    };
+    draft.evolvedFrom = [
       ...preEvolvedState.evolvedFrom,
       preEvolvedState.cardReference,
-    ],
-  };
-  return nextState;
+    ];
+    draft.playedOnTurn = playedOnTurn;
+  });
 }
 
 export function removeCardFromHand(

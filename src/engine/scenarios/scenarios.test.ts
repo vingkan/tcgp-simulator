@@ -329,6 +329,7 @@ describe("evolution", () => {
         cardId: "1",
       }),
       currentHealthPoints: 10,
+      // Attach enough energy to use the attack of the evolved Pokemon.
       attachedEnergy: [EnergyType.GRASS, EnergyType.GRASS, EnergyType.GRASS],
     };
     const pokemonB = makeInitialPokemonState({
@@ -340,6 +341,9 @@ describe("evolution", () => {
     const evolutionCardReference = makeCardReferenceFromCard(ivysaur, "3");
 
     engine.updateGameState({
+      // Pokemon must have been in play for at least one turn before evolving.
+      // Advance to the next turn so that we can evolve.
+      turnNumber: 2,
       pokemonStates: [pokemonA, pokemonB],
       active: {
         [Player.A]: pokemonA.cardReference,
@@ -368,7 +372,7 @@ describe("evolution", () => {
     const actual = engine.getGameState();
     const expected = {
       ...initial,
-      turnNumber: 2,
+      turnNumber: 3,
       activePlayer: Player.B,
       pokemonStates: [
         {
@@ -377,6 +381,7 @@ describe("evolution", () => {
           // Gain 20 health points by evolving.
           currentHealthPoints: 30,
           evolvedFrom: [pokemonA.cardReference],
+          playedOnTurn: 2,
         },
         { ...pokemonB, currentHealthPoints: 10 },
       ],

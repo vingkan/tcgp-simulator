@@ -171,6 +171,7 @@ export function makeInitialPokemonState(p: {
     attachedEnergy: [],
     attachedTool: null,
     evolvedFrom: [],
+    playedOnTurn: 1,
   };
 }
 

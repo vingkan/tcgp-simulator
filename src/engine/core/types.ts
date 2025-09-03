@@ -73,6 +73,7 @@ export type PokemonState = {
   attachedTool: CardReference<CardClass.TOOL> | null;
   // allowedAttacks
   evolvedFrom: CardReference<CardClass.POKEMON>[];
+  playedOnTurn: TurnNumber;
 };
 
 export type TurnAllowances = {
@@ -128,6 +129,7 @@ export type InternalGameState = {
   };
 };
 
+// One-indexed: The first turn of the game is turn 1.
 export type TurnNumber = number;
 
 export type CardCount = number;

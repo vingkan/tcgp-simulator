@@ -27,6 +27,7 @@ import {
   DoesNotEvolveFromError,
   EnergyRequirementNotMetError,
   ImproperCardClassError,
+  IneligibleToEvolveThisTurnError,
   NonEvolutionCardError,
 } from "./errors";
 import { getEnergyRequirementsNotMetMessage } from "./stringify";
@@ -143,13 +144,18 @@ export class GameEngine {
         );
       }
 
-      // TODO: Throw error if the Pokemon is not eligible to evolve this turn.
+      if (game.turnNumber <= preEvolvedPokemonState.playedOnTurn) {
+        throw new IneligibleToEvolveThisTurnError(
+          `Pokemon [${targetCardId}] is not eligible to evolve because it was played on this turn.`
+        );
+      }
 
       const evolvedState = applyEvolution(
         preEvolvedPokemonState,
         preEvolvedCardConfig,
         evolvedCardConfig,
-        evolvedCardId
+        evolvedCardId,
+        game.turnNumber
       );
 
       updateEvolvedPokemonState(game, targetCardId, evolvedState);
