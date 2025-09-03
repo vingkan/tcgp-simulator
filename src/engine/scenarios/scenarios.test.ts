@@ -380,6 +380,10 @@ describe("evolution", () => {
         },
         { ...pokemonB, currentHealthPoints: 10 },
       ],
+      active: {
+        [Player.A]: evolutionCardReference,
+        [Player.B]: pokemonB.cardReference,
+      },
       hand: {
         [Player.A]: [],
         [Player.B]: [],

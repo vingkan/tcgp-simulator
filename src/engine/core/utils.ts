@@ -119,29 +119,24 @@ export function hasMetEnergyRequirements(
 export function updatePokemonStates(
   game: InternalGameState,
   nextPokemonStates: PokemonState[]
-): InternalGameState {
+): void {
   const nextStatesByCardId = new Map(
     nextPokemonStates.map((p) => [p.cardReference.cardId, p])
   );
-  const withNewState = game.pokemonStates.map((currentState) => {
+  game.pokemonStates = game.pokemonStates.map((currentState) => {
     const nextState = nextStatesByCardId.get(currentState.cardReference.cardId);
     if (nextState) {
       return nextState;
     }
     return currentState;
   });
-  const nextGame = {
-    ...game,
-    pokemonStates: withNewState,
-  };
-  return nextGame;
 }
 
 export function updateEvolvedPokemonState(
   game: InternalGameState,
   preEvolvedCardId: CardGameId,
   evolvedPokemonState: PokemonState
-): InternalGameState {
+): void {
   if (evolvedPokemonState.evolvedFrom.length === 0) {
     throw new InvalidGameStateError(
       `Evolved Pokemon state does not have any pre-evolved Pokemon.`
@@ -151,43 +146,36 @@ export function updateEvolvedPokemonState(
   const latestPreEvolutionCardId =
     evolvedPokemonState.evolvedFrom[evolvedPokemonState.evolvedFrom.length - 1]
       .cardId;
-  const withNewState = game.pokemonStates.map((currentState) => {
+  game.pokemonStates = game.pokemonStates.map((currentState) => {
     if (currentState.cardReference.cardId === latestPreEvolutionCardId) {
       return evolvedPokemonState;
     }
     return currentState;
   });
 
-  const nextGame = {
-    ...game,
-    pokemonStates: withNewState,
-  };
-
   // Update active Pokemon.
-  if (nextGame.active[Player.A]?.cardId === preEvolvedCardId) {
-    nextGame.active[Player.A] = evolvedPokemonState.cardReference;
+  if (game.active[Player.A]?.cardId === preEvolvedCardId) {
+    game.active[Player.A] = evolvedPokemonState.cardReference;
   }
-  if (nextGame.active[Player.B]?.cardId === preEvolvedCardId) {
-    nextGame.active[Player.B] = evolvedPokemonState.cardReference;
+  if (game.active[Player.B]?.cardId === preEvolvedCardId) {
+    game.active[Player.B] = evolvedPokemonState.cardReference;
   }
 
   // Update bench Pokemon.
-  const nextBenchA = nextGame.bench[Player.A].map((slot) => {
+  const nextBenchA = game.bench[Player.A].map((slot) => {
     if (slot?.cardId === preEvolvedCardId) {
       return evolvedPokemonState.cardReference;
     }
     return slot;
   }) as Bench;
-  nextGame.bench[Player.A] = nextBenchA;
-  const nextBenchB = nextGame.bench[Player.B].map((slot) => {
+  game.bench[Player.A] = nextBenchA;
+  const nextBenchB = game.bench[Player.B].map((slot) => {
     if (slot?.cardId === preEvolvedCardId) {
       return evolvedPokemonState.cardReference;
     }
     return slot;
   }) as Bench;
-  nextGame.bench[Player.B] = nextBenchB;
-
-  return nextGame;
+  game.bench[Player.B] = nextBenchB;
 }
 
 function removePokemonStateByCardId(
@@ -245,46 +233,42 @@ function getPrizePointsForPokemon(config: PokemonCardConfig): PrizePoints {
 export function applyKnockoutsAndWinConditions(
   game: InternalGameState,
   registry: Registry
-): InternalGameState {
-  const nextGame = { ...game };
+): void {
   // Check for knockouts to active Pokemon.
   const activeA = game.active[Player.A];
   if (activeA && isKnockedOut(getPokemonStateByCardId(game, activeA.cardId))) {
     // Remove knocked out Pokemon.
-    nextGame.active[Player.A] = null;
-    nextGame.pokemonStates = removePokemonStateByCardId(
-      nextGame.pokemonStates,
+    game.active[Player.A] = null;
+    game.pokemonStates = removePokemonStateByCardId(
+      game.pokemonStates,
       activeA.cardId
     );
 
     // Award prize points to opponent.
     const config = registry.getPokemonCardByStableId(activeA.cardStableId);
     const points = getPrizePointsForPokemon(config);
-    nextGame.prizePoints[Player.B] = game.prizePoints[Player.B] + points;
+    game.prizePoints[Player.B] = game.prizePoints[Player.B] + points;
   }
 
   const activeB = game.active[Player.B];
   if (activeB && isKnockedOut(getPokemonStateByCardId(game, activeB.cardId))) {
     // Remove knocked out Pokemon.
-    nextGame.active[Player.B] = null;
-    nextGame.pokemonStates = removePokemonStateByCardId(
-      nextGame.pokemonStates,
+    game.active[Player.B] = null;
+    game.pokemonStates = removePokemonStateByCardId(
+      game.pokemonStates,
       activeB.cardId
     );
 
     // Award prize points to opponent.
     const config = registry.getPokemonCardByStableId(activeB.cardStableId);
     const points = getPrizePointsForPokemon(config);
-    nextGame.prizePoints[Player.A] = game.prizePoints[Player.A] + points;
+    game.prizePoints[Player.A] = game.prizePoints[Player.A] + points;
   }
 
   // TODO: Check for knockouts to benched Pokemon.
 
-  const withWinConditions = {
-    ...nextGame,
-    gameResult: getGameResult(nextGame),
-  };
-  return withWinConditions;
+  // Check win conditions.
+  game.gameResult = getGameResult(game);
 }
 
 function getTargetPokemonStateByCardId(
@@ -347,8 +331,7 @@ export function transformAttackResult(
 export function applyAttackResult(
   game: InternalGameState,
   result: EngineAttackResult
-): InternalGameState {
-  const currentGame = { ...game };
+): void {
   const uniqueTargets = new Set(result.damages.map((d) => d.targetCardId));
   if (uniqueTargets.size !== result.damages.length) {
     throw new InvalidAttackResultError(
@@ -356,15 +339,16 @@ export function applyAttackResult(
     );
   }
 
+  // Apply damages.
   const damagedStates = result.damages.map((d) => {
     const targetState = getTargetPokemonStateByCardId(game, d.targetCardId);
     const nextState = { ...targetState };
     nextState.currentHealthPoints = nextState.currentHealthPoints - d.damage;
     return nextState;
   });
+  updatePokemonStates(game, damagedStates);
 
-  const damagesApplied = updatePokemonStates(currentGame, damagedStates);
-
+  // Apply effects.
   const affectedStates = result.effects
     .map((e) => {
       if (e.type === AttackEffectType.DISCARD_SINGLE_ENERGY) {
@@ -384,9 +368,7 @@ export function applyAttackResult(
       return null;
     })
     .filter((s) => s !== null);
-
-  const nextGame = updatePokemonStates(damagesApplied, affectedStates);
-  return nextGame;
+  updatePokemonStates(game, affectedStates);
 }
 
 export function applyEvolution(
@@ -413,4 +395,12 @@ export function applyEvolution(
     ],
   };
   return nextState;
+}
+
+export function removeCardFromHand(
+  game: InternalGameState,
+  player: Player,
+  cardId: CardGameId
+): void {
+  game.hand[player] = game.hand[player].filter((c) => c.cardId !== cardId);
 }
