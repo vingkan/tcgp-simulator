@@ -51,11 +51,6 @@ export function makeDamagingMove(d: {
         effects,
       };
     },
-    onPreview: () => {
-      return {
-        expectedDamageToOpponentActivePokemon: damage,
-      };
-    },
   };
 }
 

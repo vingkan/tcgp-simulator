@@ -207,7 +207,6 @@ export type AttackConfig = {
   energyRequirements: AttackEnergyRequirements;
   damageDescriptor: string;
   onUse: (game: InternalGameState, params: AttackParams) => AttackResult;
-  onPreview: (game: InternalGameState) => AttackPreview;
 };
 
 export type BaseCardConfig = {
