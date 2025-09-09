@@ -10,7 +10,6 @@ import {
 } from "./types";
 import { makeEmptyGameState } from "./makers";
 import {
-  applyAttackResult,
   applyEvolution,
   applyKnockoutsAndWinConditions,
   getHandCardConfigByCardId,
@@ -28,10 +27,12 @@ import {
   EnergyRequirementNotMetError,
   ImproperCardClassError,
   IneligibleToEvolveThisTurnError,
+  InvalidAttackParamsError,
   NonEvolutionCardError,
 } from "./errors";
 import { getEnergyRequirementsNotMetMessage } from "./stringify";
 import { Registry } from "./registry";
+import { applyAttackResult } from "./attacks";
 
 export class GameEngine {
   private gameState: InternalGameState = makeEmptyGameState();
@@ -93,6 +94,11 @@ export class GameEngine {
             ownState.attachedEnergy
           )
         );
+      }
+
+      const validation = attack.validateParams(game, params);
+      if (!validation.isValid) {
+        throw new InvalidAttackParamsError(validation.message);
       }
 
       const result = attack.onUse(game, params);

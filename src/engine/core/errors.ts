@@ -1,5 +1,7 @@
 export class InvalidCardConfigurationError extends Error {}
 
+export class InvalidEffectCallError extends Error {}
+
 export class InvalidGameStateError extends Error {}
 
 export class InvalidAttackResultError extends Error {}
@@ -11,6 +13,8 @@ export class CardInstanceNotFoundError extends Error {}
 export class AttackNotFoundError extends Error {}
 
 export class EnergyRequirementNotMetError extends Error {}
+
+export class InvalidAttackParamsError extends Error {}
 
 export class ImproperCardClassError extends Error {}
 

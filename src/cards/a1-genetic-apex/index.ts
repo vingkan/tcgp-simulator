@@ -71,9 +71,10 @@ export const ember = makeDamagingMove({
   withEffect: (game: InternalGameState) => {
     const ownActivePokemon = getOwnActivePokemon(game);
     return {
-      type: AttackEffectType.DISCARD_SINGLE_ENERGY,
+      type: AttackEffectType.DISCARD_N_TYPED_ENERGY,
       targetCardId: ownActivePokemon.cardId,
       energyType: EnergyType.FIRE,
+      discardCount: 1,
     };
   },
 });

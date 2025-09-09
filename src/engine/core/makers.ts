@@ -37,6 +37,7 @@ export function makeDamagingMove(d: {
     description: d.description ?? null,
     energyRequirements: d.energyRequirements,
     damageDescriptor: damage.toString(),
+    validateParams: () => ({ isValid: true }),
     onUse: (game: InternalGameState): AttackResult => {
       const opponentActivePokemon = getOpponentActivePokemon(game);
       const effects = d.withEffect ? [d.withEffect(game)] : [];
@@ -147,6 +148,18 @@ export function makeEmptyGameState(): InternalGameState {
       [Player.A]: [],
       [Player.B]: [],
     },
+    revealedOpponentCards: {
+      [Player.A]: [],
+      [Player.B]: [],
+    },
+    sweetRelayStacks: {
+      [Player.A]: 0,
+      [Player.B]: 0,
+    },
+    moveUsedByCurrentActivePokemonOnPreviousTurn: {
+      [Player.A]: null,
+      [Player.B]: null,
+    },
   };
 }
 
@@ -163,10 +176,12 @@ export function makeInitialPokemonState(p: {
       cardClass: CardClass.POKEMON,
     },
     currentHealthPoints: p.pokemonCardConfig.baseHealthPoints,
+    currentStatusCondition: null,
     attachedEnergy: [],
     attachedTool: null,
     evolvedFrom: [],
     playedOnTurn: 1,
+    wasSwitchedToActiveFromBenchThisTurn: false,
   };
 }
 

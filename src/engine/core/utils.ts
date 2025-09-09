@@ -12,17 +12,12 @@ import {
   PokemonSlot,
   EngineAttackResult,
   PokemonType,
-  AttackEffectType,
   CardConfig,
   CardClass,
   Bench,
   TurnNumber,
 } from "./types";
-import {
-  CardInstanceNotFoundError,
-  InvalidAttackResultError,
-  InvalidGameStateError,
-} from "./errors";
+import { CardInstanceNotFoundError, InvalidGameStateError } from "./errors";
 import { Registry } from "./registry";
 
 export function getOwnActivePokemon(game: InternalGameState): PokemonSlot {
@@ -273,7 +268,7 @@ export function applyKnockoutsAndWinConditions(
   game.gameResult = getGameResult(game);
 }
 
-function getTargetPokemonStateByCardId(
+export function getTargetPokemonStateByCardId(
   game: InternalGameState,
   cardId: CardGameId
 ): PokemonState {
@@ -328,49 +323,6 @@ export function transformAttackResult(
     ...result,
     damages,
   };
-}
-
-export function applyAttackResult(
-  game: InternalGameState,
-  result: EngineAttackResult
-): void {
-  const uniqueTargets = new Set(result.damages.map((d) => d.targetCardId));
-  if (uniqueTargets.size !== result.damages.length) {
-    throw new InvalidAttackResultError(
-      "Found multiple damages with the same target card ID."
-    );
-  }
-
-  // Apply damages.
-  const damagedStates = result.damages.map((d) => {
-    const targetState = getTargetPokemonStateByCardId(game, d.targetCardId);
-    const nextState = { ...targetState };
-    nextState.currentHealthPoints = nextState.currentHealthPoints - d.damage;
-    return nextState;
-  });
-  updatePokemonStates(game, damagedStates);
-
-  // Apply effects.
-  const affectedStates = result.effects
-    .map((e) => {
-      if (e.type === AttackEffectType.DISCARD_SINGLE_ENERGY) {
-        const targetState = getTargetPokemonStateByCardId(game, e.targetCardId);
-        const nextState = { ...targetState };
-        const affectedEnergy = nextState.attachedEnergy.filter(
-          (t) => t !== e.energyType
-        );
-        const safeEnergy = nextState.attachedEnergy.filter(
-          (t) => t !== e.energyType
-        );
-        affectedEnergy.pop();
-        const nextEnergy = [...affectedEnergy, ...safeEnergy];
-        nextState.attachedEnergy = nextEnergy;
-        return nextState;
-      }
-      return null;
-    })
-    .filter((s) => s !== null);
-  updatePokemonStates(game, affectedStates);
 }
 
 export function applyEvolution(
